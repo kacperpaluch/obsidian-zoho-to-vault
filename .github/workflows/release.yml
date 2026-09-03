@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags: ['*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag musi się zgadzać z wersją w manifest.json
+        run: |
+          manifest=$(jq -r .version manifest.json)
+          if [ "$manifest" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME != manifest.json $manifest — BRAT rozpoznaje wydania po tagu równym wersji."
+            exit 1
+          fi
+
+      - name: Zip do ręcznej instalacji
+        run: |
+          mkdir zoho-to-vault
+          cp main.js manifest.json zoho-to-vault/
+          zip -r zoho-to-vault.zip zoho-to-vault
+
+      - name: Wydanie
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            main.js manifest.json zoho-to-vault.zip \
+            --title "$GITHUB_REF_NAME" --generate-notes

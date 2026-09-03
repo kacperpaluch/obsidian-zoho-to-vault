@@ -1,0 +1,9 @@
+{
+  "id": "zoho-to-vault",
+  "name": "Zoho to Vault",
+  "version": "0.5.0",
+  "minAppVersion": "1.4.0",
+  "description": "Zapisuje wiadomości z Zoho Mail jako notatki. Desktop i mobile — po REST API, bez IMAP.",
+  "author": "Kacper Paluch",
+  "isDesktopOnly": false
+}

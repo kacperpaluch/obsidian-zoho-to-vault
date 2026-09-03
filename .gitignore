@@ -1,0 +1,15 @@
+# ustawienia wtyczki z sekretami (gdyby ktoś testował w tym katalogu)
+data.json
+
+# konfiguracja narzędzi AI — zawiera klucze API
+.mcp.json
+opencode.json
+.claude/
+.codex/
+.opencode/
+.skillbox/
+
+# artefakty release'u
+*.zip
+
+.DS_Store
