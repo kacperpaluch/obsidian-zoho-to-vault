@@ -24,17 +24,6 @@ Pobierz `zoho-to-vault.zip` z [ostatniego wydania](https://github.com/kacperpalu
 rozpakuj do `<vault>/.obsidian/plugins/` i włącz w Community plugins.
 Bez builda — `main.js` to gotowy plik, więc równie dobrze możesz skopiować `main.js` i `manifest.json` prosto z repo.
 
-## Wydawanie nowej wersji
-
-```bash
-# podbij "version" w manifest.json i dopisz wpis do versions.json, potem:
-git tag 0.5.1 && git push origin 0.5.1
-```
-
-GitHub Actions sprawdzi, czy tag zgadza się z `manifest.json`, spakuje zip
-i utworzy wydanie z `main.js`, `manifest.json` i zipem — czyli dokładnie tym,
-czego szuka BRAT.
-
 ## Konfiguracja
 
 1. [Zoho API Console](https://api-console.zoho.eu/) → **Self Client** → Create.
