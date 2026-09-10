@@ -57,16 +57,10 @@ Dwie drogi:
 
 ## Newslettery
 
-Osobny format dla newsletterów: notatka jak z Web Clippera zamiast maila w notatce. Jedna trasa
-na linię, w ustawieniach → **Newslettery → Trasy**:
-
-```
-Substack > angielski/Olga Pietrykiewicz/substack/{YYYY}
-Dietetyka > Zdrowie/Dietetyka oparta na faktach
-```
-
-Po lewej folder w Zoho (najlepiej z reguły „od X → tutaj"), po prawej folder w vaulcie;
-`{YYYY}`, `{MM}`, `{DD}` podmieniają się na datę wiadomości. Notatka dostaje frontmatter
+Osobny format dla newsletterów: notatka jak z Web Clippera zamiast maila w notatce. W ustawieniach
+→ **Newslettery** dodajesz trasę: folder w Zoho (lista zaciągana z konta, najlepiej z reguły
+„od X → tutaj") → folder w vaulcie (lista folderów Obsidiana), plus przełącznik „podfolder
+z rokiem". Tras może być dowolnie wiele. Notatka dostaje frontmatter
 `title / source / published / Anki`, a nazwą pliku jest temat maila — bez daty z przodu,
 bez emoji, z numerem wydania na początku, jeśli treść zaczyna się od `**#258**`.
 

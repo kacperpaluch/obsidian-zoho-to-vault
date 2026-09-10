@@ -779,9 +779,108 @@ class ZohoSettingTab extends PluginSettingTab {
     });
   }
 
+  async zohoFolders() {
+    try {
+      const s = this.plugin.settings;
+      if (!s.accountId) s.accountId = (await this.plugin.api('/accounts'))[0].accountId;
+      const folders = await this.plugin.api(`/accounts/${s.accountId}/folders`);
+      return folders.map((f) => String(f.path || f.folderName).replace(/^\//, '')).filter(Boolean);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async saveRoutes(rows) {
+    this.plugin.settings.postRoutes = rows.filter((r) => r.name || r.vault).map((r) => `${r.name} > ${r.vault}`).join('\n');
+    await this.plugin.saveData(this.plugin.settings);
+  }
+
+  renderRoutes(el) {
+    el.empty();
+    // stan trzymamy tu, nie w tekście ustawień — świeżo dodany, jeszcze pusty wiersz nie ma się jak zapisać
+    if (!this.rows) this.rows = parseRoutes(this.plugin.settings.postRoutes).map((r) => ({ name: r.name, vault: r.vault }));
+    const rows = this.rows;
+    const vaultFolders = this.app.vault
+      .getAllLoadedFiles()
+      .filter((f) => f.children && f.path !== '/')
+      .map((f) => f.path)
+      .sort((a, b) => a.localeCompare(b, 'pl'));
+
+    rows.forEach((row, i) => {
+      const setting = new Setting(el);
+      setting.infoEl.remove(); // bez lewej kolumny kontrolki dostają całą szerokość
+      setting.controlEl.style.width = '100%';
+      if (this.folders && this.folders.length) {
+        // wpisany ręcznie folder trafia w ten z Zoho mimo innej wielkości liter (tak samo szuka resolveFolder),
+        // więc prostujemy pisownię zamiast straszyć „brakiem w Zoho"
+        const same = this.folders.find((f) => f.toLowerCase() === row.name.toLowerCase());
+        if (same && same !== row.name) row.name = same;
+        setting.addDropdown((d) => {
+          if (!row.name) d.addOption('', '— wybierz folder —');
+          if (row.name && !this.folders.includes(row.name)) d.addOption(row.name, `${row.name} (brak w Zoho)`);
+          this.folders.forEach((f) => d.addOption(f, f));
+          d.setValue(row.name).onChange(async (v) => {
+            row.name = v;
+            await this.saveRoutes(rows);
+          });
+          d.selectEl.style.flex = '1';
+          d.selectEl.style.minWidth = '0';
+        });
+      } else {
+        setting.addText((t) =>
+          t
+            .setPlaceholder('folder w Zoho')
+            .setValue(row.name)
+            .onChange(async (v) => {
+              row.name = v.trim();
+              await this.saveRoutes(rows);
+            })
+        );
+      }
+      // ścieżka = wybrany folder + opcjonalny podfolder z rokiem, więc obie strony klika się z listy
+      const stripYear = (v) => v.replace(/\/\{YYYY\}$/, '');
+      const base = stripYear(row.vault);
+      const byYear = row.vault !== base;
+      // stan czytamy z row przy każdej zmianie — inaczej przełącznik cofnąłby świeżo wybrany folder
+      const setVault = async (b, y) => {
+        row.vault = b + (y ? '/{YYYY}' : '');
+        await this.saveRoutes(rows);
+      };
+      setting.addDropdown((d) => {
+        if (!base) d.addOption('', '— wybierz folder —');
+        if (base && !vaultFolders.includes(base)) d.addOption(base, `${base} (brak w vaulcie)`);
+        vaultFolders.forEach((f) => d.addOption(f, f));
+        d.setValue(base).onChange((v) => setVault(v, row.vault !== stripYear(row.vault)));
+        d.selectEl.style.flex = '1';
+        d.selectEl.style.minWidth = '0';
+      });
+      setting.controlEl.createSpan({ text: 'podfolder z rokiem' }).style.opacity = '0.7';
+      setting.addToggle((t) => t.setValue(byYear).onChange((v) => setVault(stripYear(row.vault), v)));
+      setting.addExtraButton((b) =>
+        b
+          .setIcon('trash')
+          .setTooltip('Usuń trasę')
+          .onClick(async () => {
+            rows.splice(i, 1);
+            await this.saveRoutes(rows);
+            this.renderRoutes(el);
+          })
+      );
+    });
+
+    new Setting(el).addButton((b) =>
+      b.setButtonText('Dodaj trasę').onClick(async () => {
+        rows.push({ name: this.folders && this.folders.length ? this.folders[0] : '', vault: '' });
+        await this.saveRoutes(rows);
+        this.renderRoutes(el);
+      })
+    );
+  }
+
   display() {
     const { containerEl: c } = this;
     c.empty();
+    this.rows = null; // przy otwarciu ustawień czytamy trasy z data.json
 
     new Setting(c).setName('Data center').setDesc('Domena, na której masz Zoho.').addDropdown((d) => {
       d.addOptions({ eu: 'zoho.eu', com: 'zoho.com', in: 'zoho.in', 'com.au': 'zoho.com.au', jp: 'zoho.jp', ca: 'zohocloud.ca' })
@@ -802,20 +901,19 @@ class ZohoSettingTab extends PluginSettingTab {
     this.field('Folder w vaulcie', 'Gdzie zapisywać notatki.', 'vaultFolder');
     this.field('Co ile minut', '0 = tylko ręcznie.', 'pollMinutes', { reschedule: true });
 
-    new Setting(c).setName('Newslettery').setHeading();
     new Setting(c)
-      .setName('Trasy')
-      .setDesc('Linia na newsletter: folder w Zoho > folder w vaulcie. {YYYY} podmienia się na rok wiadomości. Puste = wyłączone.')
-      .addTextArea((t) => {
-        t.setPlaceholder('Substack > angielski/Olga Pietrykiewicz/substack/{YYYY}\nDietetyka > Zdrowie/Dietetyka oparta na faktach')
-          .setValue(this.plugin.settings.postRoutes)
-          .onChange(async (v) => {
-            this.plugin.settings.postRoutes = v;
-            await this.plugin.saveData(this.plugin.settings);
-          });
-        t.inputEl.rows = 4;
-        t.inputEl.style.width = '100%';
-      });
+      .setName('Newslettery')
+      .setDesc('Folder w Zoho → folder w vaulcie, w formacie notatki jak z Web Clippera. Opcjonalnie z podfolderem na rocznik.')
+      .setHeading();
+    const routesEl = c.createDiv();
+    this.renderRoutes(routesEl);
+    // lista folderów z Zoho przychodzi po sieci — do tego czasu (albo gdy się nie uda) jest zwykłe pole tekstowe
+    this.zohoFolders().then((list) => {
+      if (!list.length) return;
+      this.folders = list;
+      this.renderRoutes(routesEl);
+    });
+
     new Setting(c)
       .setName('Pobierz ostatnie newslettery')
       .setDesc('Test: bierze N najnowszych z folderu newsletterów, ignoruje „widziane" i NADPISUJE notatki.')
