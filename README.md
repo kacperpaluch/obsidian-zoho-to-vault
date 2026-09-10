@@ -55,6 +55,42 @@ Dwie drogi:
 - **Reguła w Zoho** (zalecane) — „od X → przenieś do folderu `Obsidian`", a we wtyczce
   ustawiasz ten folder i zostawiasz filtr pusty. Mniej odpytywania, filtrowanie po stronie serwera.
 
+## Newslettery
+
+Osobny format dla newsletterów: notatka jak z Web Clippera zamiast maila w notatce. Jedna trasa
+na linię, w ustawieniach → **Newslettery → Trasy**:
+
+```
+Substack > angielski/Olga Pietrykiewicz/substack/{YYYY}
+Dietetyka > Zdrowie/Dietetyka oparta na faktach
+```
+
+Po lewej folder w Zoho (najlepiej z reguły „od X → tutaj"), po prawej folder w vaulcie;
+`{YYYY}`, `{MM}`, `{DD}` podmieniają się na datę wiadomości. Notatka dostaje frontmatter
+`title / source / published / Anki`, a nazwą pliku jest temat maila — bez daty z przodu,
+bez emoji, z numerem wydania na początku, jeśli treść zaczyna się od `**#258**`.
+
+Co się dzieje z treścią:
+
+- **Substack** — z maila wyciągamy link „View in browser", a w nim siedzi token subskrybenta.
+  Tym tokenem pobieramy **post ze strony** (`.body.markup`): prawdziwe adresy zamiast
+  `substack.com/redirect/…`, podpisy pod obrazkami, zero zgadywania gdzie kończy się chrom.
+  Token żyje ~30 dni — po wygaśnięciu (albo przy zmianie szablonu) wracamy do treści maila.
+- **Reszta** — treść z maila, obcięta po markerach: nagłówek do „READ IN APP", stopka od
+  „Like"/„Copyright ©"/linku wypisu, końcowe paski ikonek.
+- **Google Drive** — PDF-y i nagrania linkowane w treści lądują w vaulcie (katalog załączników
+  z ustawień Obsidiana, oryginalna nazwa z `Content-Disposition`), a link zamienia się w
+  `[[Newsletter 258.pdf]] ([Drive](…))`. Działa też na link do **folderu** — do 3 plików, żeby
+  odnośnik do archiwum nie ściągnął pół gigabajta. Plik nie do pobrania bez logowania?
+  Zostaje zwykły link.
+- **Obrazki zostają zdalnymi adresami** — od ściągania jest
+  [Local Images Plus](https://github.com/Sergei-Korneev/obsidian-local-images-plus) z włączonym
+  „process created notes".
+
+Komenda **Zoho: pobierz 2 ostatnie newslettery (test)** (i przycisk w ustawieniach) bierze N
+najnowszych z każdej trasy, ignoruje listę „widzianych" i **nadpisuje** notatki — do kalibracji
+po zmianie ustawień.
+
 ## Ograniczenia
 
 - **Na mobile nie ma tła.** Odpytywanie leci tylko przy otwartym Obsidianie — mail trafi do vaulta
@@ -75,3 +111,7 @@ Dwie drogi:
   zdążą się pobrać, a skrypty z treści nie mają jak wystartować.
 - Komenda **Zoho: test konwersji HTML** sprawdza tę logikę na miejscu, w konsoli.
 - Deduplikacja po `messageId`, pamięć ostatnich 500 ID w `data.json`.
+- Newslettery: pliki z Drive'a o tej samej nazwie, ale innym rozmiarze dostają sufiks z ID —
+  wolimy dwa pliki niż nadpisanie cudzej treści. Lista plików w folderze Drive'a jest skrobana
+  z HTML-a (`data-id`), bo bez klucza API nie ma się jak zapytać — zmieni się markup, zostanie
+  zwykły link.
